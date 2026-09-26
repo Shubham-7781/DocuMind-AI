@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 
 from fastapi import FastAPI
@@ -51,11 +52,16 @@ def on_startup():
     os.makedirs(settings.VECTORSTORE_DIR, exist_ok=True)
     init_db()
 
-    # Avoid loading the embedding model during test startup / CI boot.
-    # The model is created lazily on first real document/chat use, which keeps
-    # pytest and GitHub Actions deterministic and prevents accidental network
-    # downloads during app construction.
-    if os.environ.get("PYTEST_CURRENT_TEST") or settings.ENVIRONMENT.lower() == "test":
+    # In CI / pytest, we must not initialize the sentence-transformers model
+    # during application startup because that can trigger slow downloads and
+    # flaky network-dependent failures. The embedding layer is loaded lazily on
+    # first actual use instead.
+    is_test_run = (
+        "pytest" in sys.modules
+        or os.environ.get("PYTEST_CURRENT_TEST") is not None
+        or settings.ENVIRONMENT.lower() == "test"
+    )
+    if is_test_run:
         logger.info("Skipping embedding warmup in test environment")
         return
 
