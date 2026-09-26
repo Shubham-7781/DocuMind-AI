@@ -59,8 +59,12 @@ class _FakeEmbeddings:
         return self._embed(text)
 
 
+def _fake_get_embeddings():
+    return _FakeEmbeddings()
+
+
 processing_module.get_embeddings.cache_clear()
-processing_module.get_embeddings = lambda: _FakeEmbeddings()  # type: ignore[assignment]
+processing_module.get_embeddings = _fake_get_embeddings  # type: ignore[assignment]
 
 from app.main import app  # noqa: E402
 
