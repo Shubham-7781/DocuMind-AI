@@ -1,3 +1,4 @@
+import os
 import time
 
 from fastapi import FastAPI
@@ -46,17 +47,18 @@ app.include_router(chat_router, prefix=settings.API_V1_PREFIX)
 
 @app.on_event("startup")
 def on_startup():
-    import os
-
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     os.makedirs(settings.VECTORSTORE_DIR, exist_ok=True)
     init_db()
 
-    # Loading the sentence-transformers embedding model the first time
-    # takes ~15-20s. Without this, that cost gets paid by whichever user
-    # sends the very first chat message (or uploads the first document)
-    # after a restart, which looks like "the app is stuck". Loading it
-    # once here, at startup, moves that cost out of the request path.
+    # Avoid loading the embedding model during test startup / CI boot.
+    # The model is created lazily on first real document/chat use, which keeps
+    # pytest and GitHub Actions deterministic and prevents accidental network
+    # downloads during app construction.
+    if os.environ.get("PYTEST_CURRENT_TEST") or settings.ENVIRONMENT.lower() == "test":
+        logger.info("Skipping embedding warmup in test environment")
+        return
+
     warmup_start = time.time()
     get_embeddings()
     logger.info("Embedding model warmed up in %dms", int((time.time() - warmup_start) * 1000))
