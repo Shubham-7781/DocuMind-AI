@@ -168,7 +168,6 @@ asked "what would you improve next":
 - Swap FAISS for a shared vector DB (Qdrant or pgvector) to support
   horizontal scaling across multiple backend replicas.
 - Alembic migrations instead of `create_all()` for schema changes.
-- Click-to-open source citations that jump to the exact PDF page.
 - An answer-confidence indicator based on retrieval similarity scores.
 - OAuth (Google) login alongside email/password.
 - Celery + Redis for document processing at higher upload volume, instead
