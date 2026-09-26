@@ -44,6 +44,14 @@ class _FakeEmbeddings:
         h = hashlib.sha256(text.encode("utf-8")).digest()
         return [b / 255.0 for b in h[: self.dim]]
 
+    def __call__(self, text):
+        # Match the callable interface LangChain vector stores expect from an
+        # embeddings provider. Some versions call the object directly instead of
+        # only using embed_documents()/embed_query().
+        if isinstance(text, str):
+            return self.embed_query(text)
+        return self.embed_documents(text)
+
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         return [self._embed(t) for t in texts]
 
