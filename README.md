@@ -1,187 +1,181 @@
-# 📚 DocuMind AI — Chat with Multiple Documents using RAG
+# 📚 DocuMind AI — Production-Grade Multi-User RAG Chatbot
 
-**DocuMind AI** is a Retrieval-Augmented Generation (RAG) chatbot that lets you upload PDF, TXT, or DOCX files and have a natural, conversational Q&A session with them — with every answer traceable back to the exact file and page it came from.
+Chat with your PDF, DOCX, and TXT files. Every answer is grounded in your
+documents and cited back to the exact source page.
 
-Built with **LangChain**, **FAISS**, **HuggingFace Sentence Transformers**, and **Groq's Llama 3.1** (fast, free-tier LLM inference), wrapped in a polished **Streamlit** UI.
-
-![Python](https://img.shields.io/badge/Python-3.9+-blue)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.35-red)
-![LangChain](https://img.shields.io/badge/LangChain-RAG-green)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
+This started as a single-file Streamlit prototype. It has been rebuilt as a
+real client–server application: a **FastAPI backend** with authentication,
+persistence, and a streaming RAG pipeline, and a **React frontend** — the
+kind of architecture you'd actually deploy, not just demo locally.
 
 ---
 
 ## ✨ Features
 
-- 📄 **Multi-format upload** — PDF, TXT, and DOCX, mixed together in a single session
-- 🔗 **Source-cited answers** — every response shows exactly which file(s) and page(s) it was grounded in, ranked and with a text snippet
-- 💬 **Conversational memory** — follow-up questions are automatically rephrased into standalone questions using prior chat context
-- 🔍 **Semantic search, not keyword search** — retrieves the most *relevant* chunks via vector embeddings, even when your wording doesn't match the document
-- 🧠 **Local embeddings** — `all-MiniLM-L6-v2` sentence-transformer runs on CPU, no API cost for embedding
-- ⚡ **Fast LLM inference** — powered by [Groq](https://groq.com/) running Llama 3.1 8B
-- 📚 **Document library panel** — see every processed file with its chunk count and page count at a glance
-- 💡 **Suggested question chips** — one-click prompts to summarize, extract key points, or pull out figures
-- 💾 **Persistent vector store** — save a processed index to disk and reload it in a later session instead of re-embedding
-- 📥 **Downloadable chat transcript** — export the full conversation as a `.txt` file
-- 📊 **Session stats** — file count, chunk count, and processing time shown in the sidebar
-- 🧹 **Reliable reset controls** — clearing a conversation properly wipes the chain's memory (not just the display), so old context can never leak into new answers
-- 🛡️ **Input validation** — friendly errors for missing API keys, empty uploads, unsupported files, or corrupted documents
-- 🎨 **Polished, modern UI** — gradient header, animated chat bubbles, ranked source cards
-
----
-
-## 🧩 How It Works (RAG Pipeline)
-
-```
- Upload (PDF / TXT / DOCX)
-     │
-     ▼
-Text Extraction (page-aware for PDFs, with per-file metadata)
-     │
-     ▼
-Chunking (LangChain RecursiveCharacterTextSplitter, 1000 chars / 200 overlap)
-     │
-     ▼
-Embedding (HuggingFace all-MiniLM-L6-v2, local CPU inference)
-     │
-     ▼
-Vector Store (FAISS — in-memory, optionally persisted to disk)
-     │
-     ▼
-User Question ──► Standalone Question Rephrasing (Custom Prompt + Chat History)
-     │
-     ▼
-Similarity Search (Top-k relevant chunks retrieved, with source metadata)
-     │
-     ▼
-Answer Generation (Groq Llama 3.1 via ConversationalRetrievalChain)
-     │
-     ▼
-Response + Ranked, Cited Sources shown in Chat UI (with conversation memory)
-```
-
-1. **Extract** — Text is pulled from every uploaded file. PDFs are read page-by-page with `PyPDF2` so each chunk keeps a page number; DOCX/TXT keep the filename as their source.
-2. **Chunk** — Text is split into overlapping ~1000-character chunks (`RecursiveCharacterTextSplitter`) while preserving source/page metadata on every chunk.
-3. **Embed** — Each chunk is converted into a vector with the `all-MiniLM-L6-v2` sentence-transformer model, run locally on CPU (cached across the session for speed).
-4. **Store** — Vectors are indexed in a **FAISS** vector store for fast similarity search, with an option to persist the index to disk.
-5. **Retrieve** — LangChain's `ConversationalRetrievalChain` first rephrases your question into a standalone question (using chat history), then retrieves the most relevant chunks from FAISS.
-6. **Generate** — The retrieved context + question are passed to Groq's Llama 3.1, which generates a grounded answer.
-7. **Cite** — The exact source documents used for that answer are shown ranked, with file icon, page number, and snippet, in an expandable panel underneath it.
-8. **Remember** — `ConversationBufferMemory` keeps the full conversation coherent across follow-ups, and is properly cleared when you start a new conversation.
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
+| Area | What it does |
 |---|---|
-| UI | Streamlit |
-| Orchestration | LangChain |
-| Document Parsing | PyPDF2, python-docx |
-| Embeddings | HuggingFace `sentence-transformers/all-MiniLM-L6-v2` |
-| Vector Store | FAISS (with local persistence) |
-| LLM | Groq `llama-3.1-8b-instant` (via `langchain-groq`) |
-| Memory | LangChain `ConversationBufferMemory` |
-| Config | python-dotenv |
+| **Multi-user accounts** | Email/password signup + JWT auth. Every user's documents, chat sessions, and vector index are fully isolated from every other user. |
+| **Multi-format ingestion** | PDF (page-aware), DOCX, TXT. Background processing so uploads don't block the UI. |
+| **RAG pipeline** | Chunking → local embeddings (`all-MiniLM-L6-v2`, no API cost) → per-user FAISS index → Groq (Llama 3.1) generation. |
+| **Token-by-token streaming** | Answers stream to the browser via Server-Sent Events as they're generated, not all-at-once. |
+| **Cited answers** | Every answer shows the exact source file + page + snippet it was grounded in. |
+| **Persistent chat history** | Multiple named chat sessions per user, stored in a real database — survives restarts, works across browser sessions. |
+| **Document management** | Upload, view processing status, delete documents (with automatic vector cleanup). |
+| **Hardening** | Per-route rate limiting, file-size/type/count limits, structured error handling, centralized logging. |
+| **Tests + CI** | Pytest suite (auth, multi-tenant isolation, document lifecycle) run automatically via GitHub Actions on every push. |
+| **Containerized** | One `docker compose up` runs the whole stack with health checks. |
 
 ---
 
-## 📁 Project Structure
+## 🏗️ Architecture
 
 ```
-DocuMind-AI/
-├── app.py               # Main Streamlit application & RAG pipeline
-├── htmlTemplates.py      # Chat UI styling (CSS + HTML templates)
-├── requirements.txt      # Python dependencies
-├── .env.example           # Template for required environment variables
-├── .gitignore
-├── LICENSE
-└── README.md
+┌─────────────────┐        HTTPS/JSON + SSE        ┌──────────────────────┐
+│   React SPA      │ ──────────────────────────────▶│   FastAPI backend     │
+│  (Vite + Tailwind)│◀────────────────────────────── │                       │
+└─────────────────┘        JWT bearer auth          │  ┌─────────────────┐  │
+                                                      │  │ Auth (JWT)       │  │
+                                                      │  ├─────────────────┤  │
+                                                      │  │ Documents API    │  │
+                                                      │  │  → extract/chunk │  │
+                                                      │  │  → embed (local) │  │
+                                                      │  ├─────────────────┤  │
+                                                      │  │ Chat API (SSE)   │  │
+                                                      │  │  → retrieve      │  │
+                                                      │  │  → Groq stream   │  │
+                                                      │  └─────────────────┘  │
+                                                      └──────────┬────────────┘
+                                                                 │
+                                        ┌────────────────────────┼───────────────────────┐
+                                        ▼                        ▼                        ▼
+                                 SQLite/Postgres           Per-user FAISS            Groq API
+                              (users, docs, chats)          index on disk         (Llama 3.1, streamed)
 ```
+
+**Why these choices, for anyone asking in an interview:**
+- **FastAPI** — async-native, so a streaming SSE endpoint and background
+  document processing are first-class, plus free OpenAPI docs at `/api/docs`.
+- **Per-user FAISS index on disk** instead of one shared index — the
+  simplest correct way to guarantee tenant isolation without standing up
+  Postgres/pgvector for a portfolio-scale project. The README below shows
+  exactly what changes to move to a shared vector DB (Qdrant/pgvector) if
+  you need horizontal scaling.
+- **SQLite by default, Postgres via one env var** — zero-config to run
+  locally, production-ready by changing `DATABASE_URL`.
+- **Local embeddings, hosted generation** — embeddings run free/offline
+  (`sentence-transformers`), so only generation needs an API key. Keeps the
+  project runnable on Groq's free tier.
+- **SSE over WebSockets for chat** — one-directional streaming is all this
+  needs; SSE is simpler to reason about, auto-reconnects, and works through
+  plain HTTP proxies.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick start (Docker — recommended)
 
-### Prerequisites
-- Python 3.9+
-- A free [Groq API key](https://console.groq.com/keys)
-
-### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-username>/DocuMind-AI.git
-cd DocuMind-AI
+git clone <your-repo-url>
+cd documind
+
+cp backend/.env.example backend/.env
+# edit backend/.env and set GROQ_API_KEY (free key: https://console.groq.com)
+# GROQ_MODEL defaults to openai/gpt-oss-20b — Groq's current fast/cheap
+# model. If Groq later deprecates that too, check console.groq.com/docs/models
+# and update GROQ_MODEL in .env (no code changes needed).
+
+docker compose up --build
 ```
 
-### 2. Create a virtual environment (recommended)
-```bash
-python -m venv venv
-source venv/bin/activate      # on Windows: venv\Scripts\activate
-```
+- Frontend: http://localhost:8080
+- Backend docs: http://localhost:8000/api/docs
 
-### 3. Install dependencies
+## 🛠️ Local development (without Docker)
+
+**Backend**
 ```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env   # then set GROQ_API_KEY
+uvicorn app.main:app --reload
 ```
 
-### 4. Set up environment variables
-Copy the template and add your key:
+**Frontend**
 ```bash
+cd frontend
 cp .env.example .env
+npm install
+npm run dev
 ```
-Then edit `.env`:
-```
-GROQ_API_KEY=your-groq-api-key-here
-```
-> ⚠️ Never commit your real `.env` file — it's already covered by `.gitignore`.
+Visit http://localhost:5173. The Vite dev server proxies `/api` to
+`http://localhost:8000` automatically.
 
-### 5. Run the app
+**Run the test suite**
 ```bash
-streamlit run app.py
+cd backend
+pytest -v
 ```
 
-Open your browser at **http://localhost:8501** (Streamlit's default port).
+---
+
+## 📁 Project structure
+
+```
+documind/
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI app, middleware, startup
+│   │   ├── config.py            # env-driven settings
+│   │   ├── models.py            # SQLAlchemy: User, Document, ChatSession, ChatMessage
+│   │   ├── schemas.py           # Pydantic request/response models
+│   │   ├── security.py          # password hashing, JWT
+│   │   ├── deps.py               # get_db, get_current_user
+│   │   ├── auth/router.py        # register / login / me
+│   │   ├── documents/            # upload, list, delete + extraction/chunking/FAISS
+│   │   ├── chat/                 # sessions API + streaming RAG chain
+│   │   └── core/                 # logging, rate limiting, exception handlers
+│   ├── tests/                    # pytest: auth, multi-tenant isolation, chat
+│   └── Dockerfile
+├── frontend/
+│   ├── src/
+│   │   ├── pages/                # Login, Register, Workspace
+│   │   ├── components/           # DocumentSidebar, ChatMessage
+│   │   ├── context/AuthContext.jsx
+│   │   └── api.js                 # axios client + SSE streaming fetch
+│   └── Dockerfile
+├── .github/workflows/ci.yml       # tests + lint + build, on every push
+└── docker-compose.yml
+```
 
 ---
 
-## 💡 Usage
+## 🔐 Security notes
 
-1. Open the app in your browser.
-2. In the sidebar, upload one or more PDF / TXT / DOCX files.
-3. Click **Process** — this extracts text, chunks it, generates embeddings, and builds the vector store. The sidebar shows a document library plus file/chunk/time stats.
-4. Type a question, or click one of the suggested question chips to get started instantly.
-5. Expand **"View sources"** under any answer to see exactly which file, page, and text snippet it came from.
-6. Ask follow-ups naturally — DocuMind AI remembers the conversation context until you clear it.
-7. Optionally **save the index** to disk so you can reload it later without re-processing, or **download the chat transcript** when you're done.
+- Passwords hashed with bcrypt, never stored or logged in plaintext.
+- JWT access tokens, 24h expiry (configurable).
+- Every document/chat/session query is scoped by `owner_id` at the ORM
+  level — one user's uploads and conversations are structurally
+  unreachable by another user (see `tests/test_documents_and_chat.py`).
+- Upload validation: extension allowlist, per-file size cap, per-upload
+  file count cap, per-account document cap.
+- Rate limiting per IP on auth, upload, and chat endpoints (`slowapi`).
+- `.env` files are gitignored; `.env.example` documents every variable.
 
----
+## 📈 What I'd do next (honest roadmap)
 
-## 🎯 Why This Project (Resume / Portfolio Relevance)
-
-This project demonstrates a complete, modern **RAG pipeline** end-to-end:
-- Multi-format document ingestion & preprocessing with metadata tracking
-- Text chunking strategy and its trade-offs
-- Embedding generation and vector similarity search
-- Prompt engineering for conversational question rephrasing
-- Grounded, source-attributed LLM answer generation
-- Conversational memory management, including correct state/session lifecycle handling
-- Persistence across sessions via a locally saved FAISS index
-- Practical engineering concerns: error handling, input validation, secrets management, UI/UX design
-
-These are core concepts in applied NLP / LLM engineering, making it a strong technical talking point in interviews — while also being a genuinely useful tool (research, legal docs, study notes, etc.).
-
----
-
-## 🔮 Possible Improvements / Roadmap
-
-- [ ] Token-by-token streaming of answers
-- [ ] Multi-user support with per-user saved indexes
-- [ ] Evaluation metrics — retrieval precision/recall on a labeled Q&A set
-- [ ] OCR support for scanned PDFs
-- [ ] Deploy to Streamlit Community Cloud for a live demo link
+Good projects name their own limitations — this is what I'd point to if
+asked "what would you improve next":
+- Swap FAISS for a shared vector DB (Qdrant or pgvector) to support
+  horizontal scaling across multiple backend replicas.
+- Alembic migrations instead of `create_all()` for schema changes.
+- Click-to-open source citations that jump to the exact PDF page.
+- An answer-confidence indicator based on retrieval similarity scores.
+- OAuth (Google) login alongside email/password.
+- Celery + Redis for document processing at higher upload volume, instead
+  of FastAPI `BackgroundTasks`.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
+MIT — see `LICENSE`.
