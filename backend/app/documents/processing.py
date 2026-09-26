@@ -60,7 +60,7 @@ def extract_documents(file_path: str, filename: str, ext: str) -> List[LCDocumen
             raise DocuMindError(f"Unsupported file type: {ext}")
     except DocuMindError:
         raise
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         logger.exception("Failed to extract text from %s", filename)
         raise DocuMindError(f"Could not read {filename}: {e}") from e
 
