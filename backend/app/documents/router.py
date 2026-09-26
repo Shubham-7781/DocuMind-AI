@@ -1,5 +1,7 @@
+import asyncio
 import os
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
@@ -94,8 +96,8 @@ async def upload_documents(
         document_id = str(uuid.uuid4())
         stored_name = f"{document_id}.{ext}"
         stored_path = os.path.join(user_dir, stored_name)
-        with open(stored_path, "wb") as f:
-            f.write(contents)
+
+        await asyncio.to_thread(Path(stored_path).write_bytes, contents)
 
         doc_row = models.Document(
             id=document_id,
