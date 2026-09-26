@@ -51,7 +51,7 @@ def _process_document(document_id: str, user_id: str, file_path: str, filename: 
             doc_row.status = "failed"
             doc_row.error_message = e.message
             logger.warning("Document processing failed for %s: %s", filename, e.message)
-        except Exception as e:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
             doc_row.status = "failed"
             doc_row.error_message = "Unexpected error while processing this file."
             logger.exception("Unexpected error processing %s", filename)
