@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean,
@@ -27,7 +27,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     documents = relationship("Document", back_populates="owner", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="owner", cascade="all, delete-orphan")
@@ -45,7 +45,7 @@ class Document(Base):
     error_message = Column(Text, nullable=True)
     num_chunks = Column(Integer, default=0)
     num_pages = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     owner = relationship("User", back_populates="documents")
 
@@ -59,7 +59,7 @@ class ChatSession(Base):
     # JSON-encoded list of document IDs this session is scoped to. Empty/
     # null means "search across all of the user's documents" (default).
     document_ids_json = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     owner = relationship("User", back_populates="chat_sessions")
     messages = relationship(
@@ -76,6 +76,6 @@ class ChatMessage(Base):
     content = Column(Text, nullable=False)
     sources_json = Column(Text, nullable=True)  # JSON-encoded list of {source, page, snippet}
     latency_ms = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     session = relationship("ChatSession", back_populates="messages")
