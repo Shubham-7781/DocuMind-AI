@@ -6,7 +6,6 @@ the standard 12-factor approach for production deployments (Docker, Render,
 Railway, EC2, etc.) instead of hardcoding secrets in source.
 """
 from functools import lru_cache
-from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -24,7 +23,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # --- CORS ---
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
     # --- Database ---
     # Defaults to local SQLite so the project runs with zero extra infra.

@@ -1,15 +1,14 @@
 import json
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app import models, schemas
+from app.chat.rag import stream_answer
 from app.config import get_settings
 from app.core.rate_limit import limiter
 from app.deps import get_current_user, get_db
-from app.chat.rag import stream_answer
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 settings = get_settings()
@@ -22,7 +21,7 @@ def _session_out(session: models.ChatSession) -> schemas.ChatSessionOut:
     )
 
 
-def _validate_document_ids(db: Session, user_id: str, document_ids: List[str]) -> None:
+def _validate_document_ids(db: Session, user_id: str, document_ids: list[str]) -> None:
     """Scoping to a document you don't own (or that doesn't exist) would let
     retrieval silently return nothing with no clear reason why, so reject it
     up front with a clear error instead."""
@@ -57,7 +56,7 @@ def create_session(
     return _session_out(session)
 
 
-@router.get("/sessions", response_model=List[schemas.ChatSessionOut])
+@router.get("/sessions", response_model=list[schemas.ChatSessionOut])
 def list_sessions(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     sessions = (
         db.query(models.ChatSession)
@@ -113,10 +112,9 @@ def delete_session(
         raise HTTPException(status_code=404, detail="Chat session not found")
     db.delete(session)
     db.commit()
-    return None
 
 
-@router.get("/sessions/{session_id}/messages", response_model=List[schemas.ChatMessageOut])
+@router.get("/sessions/{session_id}/messages", response_model=list[schemas.ChatMessageOut])
 def get_messages(
     session_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)
 ):

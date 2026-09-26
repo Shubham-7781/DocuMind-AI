@@ -1,6 +1,5 @@
 import os
 import uuid
-from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
@@ -60,12 +59,12 @@ def _process_document(document_id: str, user_id: str, file_path: str, filename: 
         db.close()
 
 
-@router.post("/upload", response_model=List[schemas.DocumentOut], status_code=status.HTTP_202_ACCEPTED)
+@router.post("/upload", response_model=list[schemas.DocumentOut], status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit(settings.RATE_LIMIT_UPLOAD)
 async def upload_documents(
     request: Request,
     background_tasks: BackgroundTasks,
-    files: List[UploadFile],
+    files: list[UploadFile],
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -81,7 +80,7 @@ async def upload_documents(
     user_dir = os.path.join(settings.UPLOAD_DIR, current_user.id)
     os.makedirs(user_dir, exist_ok=True)
 
-    created: List[models.Document] = []
+    created: list[models.Document] = []
     for file in files:
         ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
         if ext not in SUPPORTED_EXTENSIONS:
@@ -117,7 +116,7 @@ async def upload_documents(
     return created
 
 
-@router.get("", response_model=List[schemas.DocumentOut])
+@router.get("", response_model=list[schemas.DocumentOut])
 def list_documents(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return (
         db.query(models.Document)
@@ -198,4 +197,3 @@ def delete_document(
 
     db.delete(doc_row)
     db.commit()
-    return None

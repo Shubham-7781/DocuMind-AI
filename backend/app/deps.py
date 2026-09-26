@@ -1,11 +1,11 @@
-from typing import Generator, Optional
+from collections.abc import Generator
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
 from app import models
+from app.database import SessionLocal
 from app.security import decode_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -41,7 +41,7 @@ def get_current_user(
 
 def get_current_user_for_file(
     request: Request,
-    token: Optional[str] = None,
+    token: str | None = None,
     db: Session = Depends(get_db),
 ) -> models.User:
     """Same auth as get_current_user, but also accepts the JWT as a ?token=

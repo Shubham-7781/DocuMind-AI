@@ -13,7 +13,7 @@ Design notes for reviewers:
 import asyncio
 import json
 import time
-from typing import AsyncGenerator, List, Optional, Tuple
+from collections.abc import AsyncGenerator
 
 from langchain.docstore.document import Document as LCDocument
 from langchain.prompts import PromptTemplate
@@ -67,7 +67,7 @@ Answer (in your own words):"""
 )
 
 
-def _format_history(history: List[Tuple[str, str]]) -> str:
+def _format_history(history: list[tuple[str, str]]) -> str:
     lines = []
     for role, content in history:
         speaker = "Human" if role == "user" else "Assistant"
@@ -75,7 +75,7 @@ def _format_history(history: List[Tuple[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def _condense_question(question: str, history: List[Tuple[str, str]], llm: ChatGroq) -> str:
+def _condense_question(question: str, history: list[tuple[str, str]], llm: ChatGroq) -> str:
     if not history:
         return question
     prompt = CONDENSE_QUESTION_PROMPT.format(chat_history=_format_history(history), question=question)
@@ -83,7 +83,7 @@ def _condense_question(question: str, history: List[Tuple[str, str]], llm: ChatG
     return resp.content.strip() or question
 
 
-def retrieve(user_id: str, question: str, document_ids: Optional[List[str]] = None) -> List[LCDocument]:
+def retrieve(user_id: str, question: str, document_ids: list[str] | None = None) -> list[LCDocument]:
     store = load_user_index(user_id)
     # MMR (max-marginal-relevance) trades a bit of pure similarity for
     # diversity between the returned chunks, so we don't pull back several
@@ -102,7 +102,7 @@ def retrieve(user_id: str, question: str, document_ids: Optional[List[str]] = No
     return _dedupe_documents(docs)
 
 
-def _dedupe_documents(docs: List[LCDocument]) -> List[LCDocument]:
+def _dedupe_documents(docs: list[LCDocument]) -> list[LCDocument]:
     """Belt-and-suspenders dedupe: MMR reduces near-duplicates, but if two
     chunks still have effectively the same content (e.g. small chunk overlap
     straddling the same sentence), only keep the first occurrence."""
@@ -120,8 +120,8 @@ def _dedupe_documents(docs: List[LCDocument]) -> List[LCDocument]:
 async def stream_answer(
     user_id: str,
     question: str,
-    history: List[Tuple[str, str]],
-    document_ids: Optional[List[str]] = None,
+    history: list[tuple[str, str]],
+    document_ids: list[str] | None = None,
 ) -> AsyncGenerator[str, None]:
     """Yields Server-Sent-Event formatted strings.
 

@@ -10,12 +10,11 @@ product.
 import os
 import shutil
 from functools import lru_cache
-from typing import List
 
 from docx import Document as DocxDocument
 from langchain.docstore.document import Document as LCDocument
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 
@@ -37,8 +36,8 @@ def user_vectorstore_path(user_id: str) -> str:
     return os.path.join(settings.VECTORSTORE_DIR, user_id)
 
 
-def extract_documents(file_path: str, filename: str, ext: str) -> List[LCDocument]:
-    docs: List[LCDocument] = []
+def extract_documents(file_path: str, filename: str, ext: str) -> list[LCDocument]:
+    docs: list[LCDocument] = []
     try:
         if ext == "pdf":
             reader = PdfReader(file_path)
@@ -69,7 +68,7 @@ def extract_documents(file_path: str, filename: str, ext: str) -> List[LCDocumen
     return docs
 
 
-def chunk_documents(docs: List[LCDocument]) -> List[LCDocument]:
+def chunk_documents(docs: list[LCDocument]) -> list[LCDocument]:
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=settings.CHUNK_SIZE,
         chunk_overlap=settings.CHUNK_OVERLAP,
@@ -80,7 +79,7 @@ def chunk_documents(docs: List[LCDocument]) -> List[LCDocument]:
     return splitter.split_documents(docs)
 
 
-def add_document_to_index(user_id: str, document_id: str, chunks: List[LCDocument]) -> None:
+def add_document_to_index(user_id: str, document_id: str, chunks: list[LCDocument]) -> None:
     for c in chunks:
         c.metadata["document_id"] = document_id
 
@@ -120,7 +119,7 @@ def remove_document_from_index(user_id: str, document_id: str) -> None:
 
     ids_to_remove = [
         doc_id
-        for doc_id, doc in store.docstore._dict.items()  # noqa: SLF001
+        for doc_id, doc in store.docstore._dict.items()
         if doc.metadata.get("document_id") == document_id
     ]
     if ids_to_remove:

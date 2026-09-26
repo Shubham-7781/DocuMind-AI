@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -8,7 +7,7 @@ from pydantic import BaseModel, EmailStr, Field
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    full_name: Optional[str] = None
+    full_name: str | None = None
 
 
 class UserLogin(BaseModel):
@@ -19,7 +18,7 @@ class UserLogin(BaseModel):
 class UserOut(BaseModel):
     id: str
     email: EmailStr
-    full_name: Optional[str] = None
+    full_name: str | None = None
     created_at: datetime
 
     class Config:
@@ -39,7 +38,7 @@ class DocumentOut(BaseModel):
     extension: str
     size_bytes: int
     status: str
-    error_message: Optional[str] = None
+    error_message: str | None = None
     num_chunks: int
     num_pages: int
     created_at: datetime
@@ -50,8 +49,8 @@ class DocumentOut(BaseModel):
 
 # --- Chat ---
 class ChatSessionCreate(BaseModel):
-    title: Optional[str] = "New chat"
-    document_ids: Optional[List[str]] = None
+    title: str | None = "New chat"
+    document_ids: list[str] | None = None
 
 
 class ChatSessionUpdate(BaseModel):
@@ -60,13 +59,13 @@ class ChatSessionUpdate(BaseModel):
 
 class ChatSessionScopeUpdate(BaseModel):
     # Empty list / null = scope cleared (search across all documents again).
-    document_ids: Optional[List[str]] = None
+    document_ids: list[str] | None = None
 
 
 class ChatSessionOut(BaseModel):
     id: str
     title: str
-    document_ids: List[str] = []
+    document_ids: list[str] = []
     created_at: datetime
 
     class Config:
@@ -77,15 +76,15 @@ class SourceRef(BaseModel):
     source: str
     page: int
     snippet: str
-    document_id: Optional[str] = None
+    document_id: str | None = None
 
 
 class ChatMessageOut(BaseModel):
     id: str
     role: str
     content: str
-    sources: List[SourceRef] = []
-    latency_ms: Optional[int] = None
+    sources: list[SourceRef] = []
+    latency_ms: int | None = None
     created_at: datetime
 
     class Config:
